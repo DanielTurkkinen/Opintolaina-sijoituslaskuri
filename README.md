@@ -1,1 +1,0 @@
-# Opintolaina-sijoituslaskuri
