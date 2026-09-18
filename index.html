@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Opintolaina vs sijoittaminen</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-glow bg-glow-one"></div>
+  <div class="bg-glow bg-glow-two"></div>
+
+  <main class="page">
+    <header class="hero">
+      <div>
+        <h1>Opintolaina vs sijoittaminen</h1>
+        <p class="subtitle">
+          Simuloi opintolainan nostot tukikuukausittain, sijoitukset, opintolainahyvitys,
+          lainan takaisinmaksu ja eri strategioiden nettovarallisuus.
+        </p>
+      </div>
+      <div class="hero-card">
+        <span class="hero-card-label">Paras strategia</span>
+        <strong id="bestStrategy">–</strong>
+        <small id="bestDetails">Laske skenaario nähdäksesi tuloksen.</small>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <h2>Syötteet</h2>
+          <p>Perusmalli pitää syötteet tiiviinä. Laskenta on jaettu erikseen opiskeluvaiheeseen, valmistumishetkeen ja takaisinmaksuvaiheeseen.</p>
+        </div>
+        <button type="button" id="calculateButton">Laske</button>
+      </div>
+
+      <div class="input-grid">
+        <label>Opintojen kesto, vuotta
+          <input id="studyYears" type="number" step="0.5" value="5" min="0" max="15" required>
+        </label>
+        <label>Tukikuukausia vuodessa
+          <input id="supportMonths" type="number" step="1" value="9" min="0" max="12" required>
+        </label>
+        <label>Lainan nosto / tukikuukausi, €
+          <input id="loanPerMonth" type="number" step="10" value="850" min="0" max="850" required>
+        </label>
+        <label>Lainasta sijoitetaan / tukikuukausi, €
+          <input id="investFromLoan" type="number" step="10" value="300" min="0" max="850" required>
+        </label>
+        <label>Valmistumisen jälkeinen kk-sijoitus, €
+          <input id="postStudyInvest" type="number" step="10" value="300" min="0" max="100000" required>
+        </label>
+        <label>Sijoitusten vuosituotto, %
+          <input id="investmentReturn" type="number" step="0.1" value="8" min="-100" max="100" required>
+        </label>
+        <label>Lainan vuosikorko, %
+          <input id="loanRate" type="number" step="0.1" value="3" min="0" max="30" required>
+        </label>
+        <label>Strategia A takaisinmaksu, v
+          <input id="termA" type="number" step="1" value="10" min="1" max="50" required>
+        </label>
+        <label>Strategia B takaisinmaksu, v
+          <input id="termB" type="number" step="1" value="20" min="1" max="50" required>
+        </label>
+        <label>Tarkasteluaika valmistumisesta, vuotta
+          <input id="horizonYears" type="number" step="1" value="20" min="0" max="60" required>
+        </label>
+        <label>Tutkinto: tukikuukausien ja hyvityksen peruste (Suomi)
+          <select id="degreeLoanCap">
+            <option value="10800">180 op</option><option value="12800">210 op</option>
+            <option value="14400">240 op</option><option value="16400">270 op</option>
+            <option value="18000" selected>300 op</option><option value="20000">330 op</option>
+            <option value="21600">360 op</option>
+          </select>
+        </label>
+        <label>Ensimmäisten korkeakouluopintojen aloitus
+          <select id="studyStartPeriod">
+            <option value="since2017" selected>1.8.2017 tai myöhemmin</option>
+            <option value="since2014">1.8.2014–31.7.2017</option>
+            <option value="since2011">1.8.2011–31.7.2014</option>
+          </select>
+        </label>
+        <label>Tästä tukiajasta käytetty ennen laskelman alkua, kk
+          <input id="usedSupportMonths" type="number" min="0" max="64" step="1" value="0" required>
+        </label>
+        <label class="checkbox-row">
+          <input id="useCredit" type="checkbox" checked> Hyvityksen ehdot täyttyvät: huomioi hyvitys
+        </label>
+        <label class="checkbox-row">
+          <input id="reinvestFreedPayments" type="checkbox" checked> Sijoita lyhennyksistä vapautuva raha
+        </label>
+        <label>Strategioiden vertailumalli
+          <select id="strategyMode">
+            <option value="independent" selected>Riippumaton</option>
+            <option value="comparison">Vertailuperusteinen</option>
+          </select>
+        </label>
+      </div>
+
+
+      <div class="info-box">
+        <h3>Tukikuukausien kokonaisraja</h3>
+        <p id="supportLimitInfo" aria-live="polite">Raja määräytyy tutkinnosta ja aloitusajankohdasta. Paina Laske muutettuasi valintoja.</p>
+        <p>Jos suunniteltuja tukikuukausia on liikaa, laskuri lopettaa lainan nostot ja lainasta sijoittamisen rajan täytyttyä. Opintojen pituus ei lisää tukioikeutta. Hyvityksen lainakatto on erillinen rajoitus.</p>
+        <p>Malli kattaa valitun tutkinnon tai 300–360 op:n tutkintokokonaisuuden 1.8.2011 tai myöhemmin aloitetuissa opinnoissa. Alemman ja ylemmän tutkinnon vaihekohtaisia rajoja ei aikatauluteta erikseen. Aiemmin käytetyksi merkitään vain tämän laskelman ulkopuolella kulunut tukiaika; aiempaa velkaa tai salkkua ei lisätä laskelmaan. Tarkista henkilökohtainen tukiaika OmaKelasta. Uusi tutkinto aiemman valmiin tutkinnon jälkeen, ennen 1.8.2011 aloitetut opinnot ja erikseen myönnetyt pidennykset eivät kuulu automaattiseen sääntömalliin. <a href="https://www.kela.fi/opintotukiaika-korkeakoulussa" target="_blank" rel="noopener">Kelan tukiaikaohje</a>.</p>
+      </div>
+      <div class="info-box">
+        <h3>Miten vertailumallit eroavat?</h3>
+        <p>
+          <strong>Riippumaton malli:</strong> Strategia A ja B lasketaan erillisinä suunnitelmina.
+          Jos A on 10 vuotta ja B 20 vuotta, B ei saa automaattisesti lisäsijoitusta vain siksi, että A:n kuukausierä olisi suurempi.
+          Kun B:n oma laina loppuu, sen oma aiempi kuukausierä voidaan sijoittaa, jos “Sijoita lyhennyksistä vapautuva raha” on päällä.
+        </p>
+        <p>
+          <strong>Vertailuperusteinen malli:</strong> Strategia B voi hyödyntää A:n ja B:n kuukausierien erotuksen.
+          Esimerkiksi jos 10 vuoden kuukausierä on 370 € ja 20 vuoden kuukausierä 215 €, pidemmän maksusuunnitelman käyttäjä sijoittaa erotuksen
+          155 €/kk heti alusta alkaen. Kun senkin laina päättyy, lisäsijoitus on 370 €/kk. Molempien lainastrategioiden kuukausibudjetti (lainanmaksu + sijoitukset) on tällöin sama. Tässä mallissa B:n tulos muuttuu, jos A:n takaisinmaksuaikaa muutetaan, koska vertailuerotus muuttuu.
+        </p>
+      </div>
+
+      <div class="info-box">
+        <h3>Laskennan oletukset ja rajaukset</h3>
+        <p>Malli koskee Suomessa suoritettavaa tutkintoa. Hyvitys on 40 % yli 2 500 euron lainasta tutkintokohtaiseen enimmäismäärään asti. 400 €/kk määrittää tutkinnon laskennallisen katon (9 kk/lukuvuosi, 5 kk/puolivuosi), ei jokaisen todellisen nostokuukauden henkilökohtaista kattoa. Pääomitetut korot eivät oikeuta hyvitykseen. Valitse tutkinto ja tarkista itse oikeutesi hyvitykseen <a href="https://www.kela.fi/opintolainahyvitys" target="_blank" rel="noopener">Kelasta</a>.</p>
+        <p>Opintojen kesto pyöristetään lähimpään kuukauteen. Nostot ja sijoitukset tehdään opiskeluvuoden ensimmäisinä tukikuukausina kuukauden alussa. Korot arvioidaan kuukausittain pääomittamalla samalla kiinteällä korolla; pankkien puolivuosittaista pääomitusta ei mallinneta. Hyvitys vähennetään lainasta heti valmistumisen kohdalla ja tasalyhenteisen sijaan käytetään kiinteää annuiteettierää seuraavasta kuukaudesta. Todellista hyvityksen maksuviivettä, lyhennysvapaata, kuluja, veroja ja inflaatiota ei mallinneta.</p>
+        <p>Sijoitusten vuosituotto on efektiivinen: 8 % tarkoittaa 8 % kasvua vuodessa ilman uusia sijoituksia. Valmistumisen jälkeen sijoitetaan kuukauden lopussa. Korot ja kokonaismaksut esitetään koko takaisinmaksuajalta, vaikka tarkasteluaika olisi lyhyempi.</p>
+        <p>Ei-lainaa-vaihtoehto sijoittaa vain annetun perussumman valmistumisen jälkeen. Sille ei kohdisteta lainanlyhennyksiin tai opiskeluaikaiseen elämiseen vastaavaa budjettia. Riippumattomien strategioiden rahankäyttö voi myös erota. Tulosten ero ei siksi yksin mittaa lainan kannattavuutta samalla käytettävissä olevalla rahalla. Laskuri havainnollistaa oletuksia eikä anna sijoitussuositusta.</p>
+      </div>
+      <details class="advanced">
+        <summary>Lisäasetukset</summary>
+        <div class="input-grid advanced-grid">
+          <label>Volatiliteettisimulaation vuosivolatiliteetti, %
+            <input id="volatility" type="number" step="0.5" value="15" min="0" max="100" required>
+          </label>
+          <label>Herkkyysanalyysin min. vuosituotto, %
+            <input id="sensitivityMin" type="number" step="0.5" value="0" min="-100" max="100" required>
+          </label>
+          <label>Herkkyysanalyysin max. vuosituotto, %
+            <input id="sensitivityMax" type="number" step="0.5" value="12" min="-100" max="100" required>
+          </label>
+        </div>
+      </details>
+
+      <div id="warning" class="warning" role="alert"></div>
+    </section>
+
+    <div id="results">
+    <section class="summary-grid">
+      <article class="metric-card featured">
+        <span>Kokonaislaina</span>
+        <strong id="totalLoanBig">–</strong>
+        <small id="graduationDetails">–</small>
+      </article>
+
+      <article class="metric-card">
+        <span>Ei opintolainaa</span>
+        <strong id="netNoLoan">–</strong>
+        <small id="detailsNoLoan">–</small>
+      </article>
+
+      <article class="metric-card">
+        <span>Strategia A</span>
+        <strong id="netA">–</strong>
+        <small id="detailsA">–</small>
+      </article>
+
+      <article class="metric-card">
+        <span>Strategia B</span>
+        <strong id="netB">–</strong>
+        <small id="detailsB">–</small>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <h2>Yhteenveto</h2>
+          <p>Nopea tulkinta siitä, mikä vaihtoehto voittaa tällä skenaariolla.</p>
+        </div>
+      </div>
+      <div class="summary-two">
+        <div class="insight-card">
+          <span>Ero ei-lainaa-skenaarioon</span>
+          <strong id="loanBenefit">–</strong>
+          <small id="loanBenefitText">–</small>
+        </div>
+        <div class="insight-card">
+          <span>Strategioiden ero</span>
+          <strong id="strategyGap">–</strong>
+          <small id="strategyGapText">–</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel chart-panel">
+      <div class="section-heading">
+        <div>
+          <h2>Nettovarallisuus ja lainapääoma</h2>
+          <p>Vihreät käyrät kuvaavat varallisuutta, punaiset lainapääomaa.</p>
+        </div>
+      </div>
+      <canvas id="mainChart"></canvas>
+    </section>
+
+    <section class="panel">
+      <div class="section-heading">
+        <div>
+          <h2>Laskentalogiikka</h2>
+          <p>
+            Opiskeluvaiheessa salkku kasvaa vain summalla “lainasta sijoitetaan / tukikuukausi”.
+            Muu lainanosto kirjataan kulutukseen eikä sitä lisätä salkkuun. Takaisinmaksuvaiheessa
+            salkkuun lisätään valmistumisen jälkeinen kuukausisijoitus sekä haluttaessa lyhennyksistä
+            vapautuva raha tai pidemmän takaisinmaksun tuoma kuukausierien erotus.
+          </p>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="panel chart-panel">
+      <div class="section-heading">
+        <div>
+          <h2>Volatiliteettisimulaatio</h2>
+          <p>Yksi yhteinen satunnainen markkinapolku kaikille strategioille. Lognormaali malli estää alle −100 % kuukausitappiot. Tuotto on odotettu efektiivinen vuosituotto, volatiliteetti vuositasoinen log-tuoton keskihajonta. Yksi polku ei kuvaa tulosten todennäköisyyksiä.</p>
+        </div>
+        <button type="button" id="randomPathButton" class="secondary">Arvo uusi polku</button>
+      </div>
+      <div class="mini-grid">
+        <div><span>Ei lainaa</span><strong id="stochNoLoan">–</strong></div>
+        <div><span>Strategia A</span><strong id="stochA">–</strong></div>
+        <div><span>Strategia B</span><strong id="stochB">–</strong></div>
+        <div><span>Polun paras</span><strong id="stochBest">–</strong></div>
+      </div>
+      <canvas id="stochasticChart"></canvas>
+    </section>
+
+    <section class="panel chart-panel">
+      <div class="section-heading">
+        <div>
+          <h2>Herkkyysanalyysi</h2>
+          <p>
+            Näyttää, miten loppunettovarallisuus muuttuu, kun vuosituotto-oletus vaihtuu.
+            Korostettu pystylinja näyttää nykyisen tuotto-oletuksen.
+          </p>
+        </div>
+      </div>
+
+      <div class="mini-grid sensitivity-summary">
+        <div><span>Nykyinen tuotto-oletus</span><strong id="currentReturnLabel">–</strong></div>
+        <div><span>Paras nykyisellä tuotolla</span><strong id="sensitivityBest">–</strong></div>
+        <div><span>Lainavertailun tasatuloksen tuottoalue</span><strong id="breakevenReturn">–</strong></div>
+      </div>
+
+      <canvas id="sensitivityChart"></canvas>
+    </section>
+
+    <section class="panel table-panel">
+      <h2>Tarkka tulostaulukko</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Mittari</th><th>Ei lainaa</th><th>Strategia A</th><th>Strategia B</th></tr>
+          </thead>
+          <tbody id="resultTable"></tbody>
+        </table>
+      </div>
+    </section>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
